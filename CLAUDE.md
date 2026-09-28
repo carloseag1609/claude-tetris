@@ -39,3 +39,9 @@ Key mechanics in `game.js`:
 Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops, P pauses).
 
 If you change `COLS`, `ROWS`, or `BLOCK`, also update the `<canvas id="board">` `width`/`height` in `index.html` to match (`COLS × BLOCK` × `ROWS × BLOCK`).
+
+## CI
+
+- `.github/workflows/claude.yml` — responds to `@claude` mentions in issues/PR comments/reviews.
+- `.github/workflows/claude-code-review.yml` — auto-reviews opened/updated PRs.
+- `.github/workflows/claude-issue-triage.yml` — on every new issue, Claude labels it (type, `area: *`, `priority: *`, `triaged`, ...) and posts a diagnosis comment (affected code, root-cause/approach, implementation steps, verification). Comment `@claude implement this` on a triaged issue to have `claude.yml` open a fix PR.
