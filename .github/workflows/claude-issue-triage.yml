@@ -84,7 +84,10 @@ jobs:
 
             6. Post one comment with
                `gh issue comment ${{ github.event.issue.number }} --body "..."`
-               using this template (English, keep it concise but concrete):
+               using this template (English, keep it concise but concrete).
+               The comment body MUST be valid GitHub Flavored Markdown
+               (headings, bold, bullet/numbered lists, fenced code blocks,
+               inline code for identifiers and `file.js:line` references):
 
                ## 🤖 Claude Triage
 
