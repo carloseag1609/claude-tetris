@@ -36,6 +36,8 @@ Key mechanics in `game.js`:
 - Scoring: `LINE_SCORES = [0, 100, 300, 500, 800]` × level for line clears; hard drop = 2 pts/cell dropped; soft drop = 1 pt/row.
 - Ghost piece (`ghostY`) projects `current`'s landing row, drawn at `globalAlpha = 0.2`.
 
+Theming: colors live in CSS custom properties on `:root` (dark, default) with a `:root[data-theme="light"]` override in `style.css`. An inline script in `<head>` applies the saved theme (`localStorage` key `theme`) before first paint. `setTheme()` in `game.js` sets `data-theme`, persists it, caches canvas colors (`--grid`, `--block-highlight`) read via `getComputedStyle` into `gridColor`/`highlightColor`, and repaints `draw()`/`drawNext()` (so it works while paused/game over). Toggle with the `#theme-toggle` button or `T` (handled before the `paused || gameOver` guard).
+
 Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops, P pauses).
 
 If you change `COLS`, `ROWS`, or `BLOCK`, also update the `<canvas id="board">` `width`/`height` in `index.html` to match (`COLS × BLOCK` × `ROWS × BLOCK`).
