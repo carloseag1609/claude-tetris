@@ -17,7 +17,15 @@
 <body>
   <div class="wrapper">
     <div class="game-container">
-      <canvas id="board" width="300" height="600"></canvas>
+      <aside class="panel panel-left">
+        <div class="panel-section" id="hold-panel">
+          <span class="label">HOLD</span>
+          <canvas id="hold-canvas" width="120" height="120"></canvas>
+          <span class="hold-status">BLOQUEADO</span>
+        </div>
+      </aside>
+
+      <canvas id="board"width="300" height="600"></canvas>
 
       <aside class="panel">
         <div class="panel-section">
@@ -45,6 +53,7 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
+            <li><kbd>C</kbd><kbd>Shift</kbd> guardar</li>
             <li><kbd>P</kbd> pausa</li>
             <li><kbd>T</kbd> tema</li>
           </ul>
