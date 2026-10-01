@@ -43,6 +43,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
 - **Modo claro / oscuro** (oscuro por defecto), con botón o tecla `T`; la elección se guarda en `localStorage`.
+- **Skins**: Retro (por defecto), Neon (brillo con `shadowBlur`), Pastel (esquinas redondeadas) y Pixel Art (textura por bloque). Selector en el panel o tecla `K`; se guarda en `localStorage` (`skin`) y se aplica al instante.
 
 ---
 
@@ -87,6 +88,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `Espacio` | Hard drop (caída instantánea)     |
 | `P`       | Pausar / reanudar                 |
 | `T`       | Alternar modo claro / oscuro      |
+| `K`       | Cambiar de skin (Retro, Neon, Pastel, Pixel Art) |
 
 ---
 

@@ -40,6 +40,29 @@
   --block-highlight: rgba(255, 255, 255, 0.35);
 }
 
+/* ---- Skins (se combinan con data-theme) ---- */
+:root[data-skin="neon"] {
+  --board-bg: #000000;
+  --grid: #14141f;
+  --border: #1d3a4a;
+  --block-highlight: rgba(255, 255, 255, 0);
+}
+
+:root[data-skin="neon"] #board {
+  box-shadow: 0 0 24px rgba(77, 208, 225, 0.35);
+}
+
+:root[data-skin="pastel"] {
+  --block-highlight: rgba(255, 255, 255, 0.55);
+}
+
+:root[data-skin="pixel"] #board,
+:root[data-skin="pixel"] #next-canvas,
+:root[data-skin="pixel"] #hold-canvas {
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -163,6 +186,20 @@ kbd {
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
+}
+
+#skin-select {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#skin-select:hover {
+  border-color: var(--accent);
 }
 
 #theme-toggle:hover {

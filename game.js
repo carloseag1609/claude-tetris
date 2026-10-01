@@ -15,6 +15,14 @@ const COLORS = [
   '#ffb74d', // L - orange
 ];
 
+// Paleta suave para el skin Pastel
+const PASTEL_COLORS = [
+  null,
+  '#a8e6ef', '#fff1b8', '#e0c3f0', '#c5e8c7', '#f5b9b9', '#c4dcf7', '#ffd9a8',
+];
+
+const SKINS = ['retro', 'neon', 'pastel', 'pixel'];
+
 const PIECES = [
   null,
   [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
@@ -43,8 +51,9 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeBtn = document.getElementById('theme-toggle');
+const skinSelect = document.getElementById('skin-select');
 
-let gridColor, highlightColor;
+let gridColor, highlightColor, skin = 'retro';
 let board, current, next, held, canHold, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 
 function createBoard() {
@@ -185,15 +194,70 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+// Rectángulo con esquinas redondeadas (arcTo, compatible con todos los navegadores)
+function roundedRect(context, x, y, w, h, r) {
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.arcTo(x + w, y, x + w, y + h, r);
+  context.arcTo(x + w, y + h, x, y + h, r);
+  context.arcTo(x, y + h, x, y, r);
+  context.arcTo(x, y, x + w, y, r);
+  context.closePath();
+}
+
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
-  context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = highlightColor;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+  const a = alpha ?? 1;
+  const px = x * size + 1, py = y * size + 1, s = size - 2;
+  if (skin === 'neon') {
+    const color = COLORS[colorIndex];
+    context.save();
+    context.shadowColor = color;
+    context.shadowBlur = 12;
+    context.globalAlpha = a * 0.35;
+    context.fillStyle = color;
+    context.fillRect(px + 1, py + 1, s - 2, s - 2);
+    // el contorno se mantiene visible aunque el alpha sea bajo (ghost / hold bloqueado)
+    context.globalAlpha = Math.min(1, a * 2.5);
+    context.strokeStyle = color;
+    context.lineWidth = 2;
+    context.strokeRect(px + 1, py + 1, s - 2, s - 2);
+    context.restore(); // restaura shadowBlur/shadowColor/globalAlpha
+    return;
+  }
+  context.globalAlpha = a;
+  if (skin === 'pastel') {
+    context.fillStyle = PASTEL_COLORS[colorIndex];
+    roundedRect(context, px, py, s, s, 8);
+    context.fill();
+    context.fillStyle = highlightColor;
+    roundedRect(context, px + 3, py + 3, s - 6, 5, 2.5);
+    context.fill();
+  } else if (skin === 'pixel') {
+    const u = s / 6; // celda de textura
+    context.fillStyle = COLORS[colorIndex];
+    context.fillRect(px, py, s, s);
+    // damero de píxeles oscuros / claros
+    for (let i = 0; i < 6; i++)
+      for (let j = 0; j < 6; j++) {
+        if ((i + j) % 2) continue;
+        context.fillStyle = (i + j) % 4 ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)';
+        context.fillRect(px + i * u, py + j * u, u, u);
+      }
+    // bisel: luz arriba/izquierda, sombra abajo/derecha
+    context.fillStyle = 'rgba(255,255,255,0.45)';
+    context.fillRect(px, py, s, u);
+    context.fillRect(px, py, u, s);
+    context.fillStyle = 'rgba(0,0,0,0.4)';
+    context.fillRect(px, py + s - u, s, u);
+    context.fillRect(px + s - u, py, u, s);
+  } else {
+    context.fillStyle = COLORS[colorIndex];
+    context.fillRect(px, py, size - 2, size - 2);
+    // highlight
+    context.fillStyle = highlightColor;
+    context.fillRect(px, py, size - 2, 4);
+  }
   context.globalAlpha = 1;
 }
 
@@ -308,6 +372,25 @@ function setTheme(theme) {
   drawHold();
 }
 
+function setSkin(name) {
+  if (!SKINS.includes(name)) name = 'retro';
+  skin = name;
+  document.documentElement.dataset.skin = name;
+  try { localStorage.setItem('skin', name); } catch (e) {}
+  skinSelect.value = name;
+  // el skin puede cambiar --grid / --block-highlight vía CSS
+  const styles = getComputedStyle(document.documentElement);
+  gridColor = styles.getPropertyValue('--grid').trim();
+  highlightColor = styles.getPropertyValue('--block-highlight').trim();
+  draw();
+  drawNext();
+  drawHold();
+}
+
+function cycleSkin() {
+  setSkin(SKINS[(SKINS.indexOf(skin) + 1) % SKINS.length]);
+}
+
 function toggleTheme() {
   setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
 }
@@ -335,6 +418,7 @@ function init() {
 document.addEventListener('keydown', e => {
   if (e.code === 'KeyP') { togglePause(); return; }
   if (e.code === 'KeyT') { toggleTheme(); return; }
+  if (e.code === 'KeyK') { cycleSkin(); return; }
   if (paused || gameOver) return;
   if (e.code === 'KeyC' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
     if (!e.repeat) holdPiece();
@@ -368,5 +452,11 @@ themeBtn.addEventListener('click', () => {
   themeBtn.blur();
 });
 
+skinSelect.addEventListener('change', () => {
+  setSkin(skinSelect.value);
+  skinSelect.blur(); // evita que las flechas cambien el skin durante el juego
+});
+
 init();
 setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+setSkin(document.documentElement.dataset.skin);
