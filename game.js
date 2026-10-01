@@ -43,9 +43,19 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeBtn = document.getElementById('theme-toggle');
+const startOverlay = document.getElementById('start-overlay');
+const startBtn = document.getElementById('start-btn');
+const newRecordEl = document.getElementById('new-record');
+const nameForm = document.getElementById('name-form');
+const nameInput = document.getElementById('name-input');
+const goScoresBlock = document.getElementById('go-scores-block');
+
+const MAX_SCORES = 5;
+const NAME_MAX = 12;
 
 let gridColor, highlightColor;
 let board, current, next, held, canHold, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let started = false, combo = 0, bestComboGame = 0;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -118,6 +128,7 @@ function clearLines() {
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+  return cleared;
 }
 
 function ghostY() {
@@ -145,7 +156,9 @@ function softDrop() {
 
 function lockPiece() {
   merge();
-  clearLines();
+  // combo: bloqueos consecutivos que limpian >= 1 línea
+  combo = clearLines() ? combo + 1 : 0;
+  if (combo > bestComboGame) bestComboGame = combo;
   spawn();
   if (!gameOver) setCanHold(true);
 }
@@ -258,12 +271,116 @@ function drawHold() {
       drawBlock(holdCtx, offX + c, offY + r, shape[r][c], 30, canHold ? 1 : 0.3);
 }
 
+// ---- Récords (localStorage) ----
+function loadScores() {
+  try {
+    const data = JSON.parse(localStorage.getItem('highscores'));
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter(e => e && typeof e === 'object' && Number.isFinite(e.score) && e.score > 0)
+      .map(e => ({
+        name: String(e.name ?? '').slice(0, NAME_MAX) || 'Anónimo',
+        score: Math.floor(e.score),
+        lines: Number.isFinite(e.lines) ? Math.floor(e.lines) : 0,
+        combo: Number.isFinite(e.combo) ? Math.floor(e.combo) : 0,
+        date: Number.isFinite(e.date) ? e.date : 0,
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_SCORES);
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveScores(list) {
+  try { localStorage.setItem('highscores', JSON.stringify(list)); } catch (e) {}
+}
+
+function loadRecords() {
+  const rec = { maxCombo: 0, maxLines: 0 };
+  try {
+    const data = JSON.parse(localStorage.getItem('records'));
+    if (data && Number.isFinite(data.maxCombo) && data.maxCombo > 0) rec.maxCombo = Math.floor(data.maxCombo);
+    if (data && Number.isFinite(data.maxLines) && data.maxLines > 0) rec.maxLines = Math.floor(data.maxLines);
+  } catch (e) {}
+  return rec;
+}
+
+function saveRecords() {
+  const rec = loadRecords();
+  rec.maxCombo = Math.max(rec.maxCombo, bestComboGame);
+  rec.maxLines = Math.max(rec.maxLines, lines);
+  try { localStorage.setItem('records', JSON.stringify(rec)); } catch (e) {}
+}
+
+function qualifies(s) {
+  const list = loadScores();
+  return s > 0 && (list.length < MAX_SCORES || s > list[list.length - 1].score);
+}
+
+function renderScores(listEl, recordsEl, highlight) {
+  const list = loadScores();
+  listEl.replaceChildren();
+  if (!list.length) {
+    const li = document.createElement('li');
+    li.textContent = 'Sin puntuaciones';
+    listEl.appendChild(li);
+  }
+  list.forEach((e, i) => {
+    const li = document.createElement('li');
+    const name = document.createElement('span');
+    const pts = document.createElement('span');
+    name.textContent = `${i + 1}. ${e.name}`;
+    pts.textContent = e.score.toLocaleString();
+    li.append(name, pts);
+    if (highlight && e.date === highlight.date && e.score === highlight.score && e.name === highlight.name) {
+      li.classList.add('highlight');
+    }
+    listEl.appendChild(li);
+  });
+  const rec = loadRecords();
+  recordsEl.textContent = `Mejor combo: ${rec.maxCombo}\nMáx. líneas en una partida: ${rec.maxLines}`;
+}
+
+function renderAllScores(highlight) {
+  renderScores(document.getElementById('start-scores'), document.getElementById('start-records'));
+  renderScores(document.getElementById('go-scores'), document.getElementById('go-records'), highlight);
+}
+
+function submitName() {
+  const name = nameInput.value.trim().slice(0, NAME_MAX) || 'Anónimo';
+  try { localStorage.setItem('playerName', name); } catch (e) {}
+  const entry = { name, score, lines, combo: bestComboGame, date: Date.now() };
+  const list = loadScores();
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score);
+  saveScores(list.slice(0, MAX_SCORES));
+  nameForm.classList.add('hidden');
+  newRecordEl.classList.add('hidden');
+  goScoresBlock.classList.remove('hidden');
+  renderAllScores(entry);
+}
+
 function endGame() {
+  if (gameOver) return;
   gameOver = true;
   cancelAnimationFrame(animId);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  saveRecords();
+  renderAllScores();
+  if (qualifies(score)) {
+    let last = '';
+    try { last = localStorage.getItem('playerName') || ''; } catch (e) {}
+    nameInput.value = last.slice(0, NAME_MAX);
+    newRecordEl.classList.remove('hidden');
+    nameForm.classList.remove('hidden');
+    goScoresBlock.classList.add('hidden');
+  } else {
+    goScoresBlock.classList.remove('hidden');
+  }
   overlay.classList.remove('hidden');
+  if (!nameForm.classList.contains('hidden')) nameInput.focus();
 }
 
 function togglePause() {
@@ -323,6 +440,11 @@ function init() {
   dropAccum = 0;
   lastTime = performance.now();
   held = null;
+  combo = 0;
+  bestComboGame = 0;
+  newRecordEl.classList.add('hidden');
+  nameForm.classList.add('hidden');
+  goScoresBlock.classList.add('hidden');
   next = randomPiece();
   spawn();
   setCanHold(true);
@@ -333,6 +455,13 @@ function init() {
 }
 
 document.addEventListener('keydown', e => {
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (!started) {
+    if (e.code === 'KeyT') toggleTheme();
+    else if ((e.code === 'Enter' || e.code === 'NumpadEnter') && tag !== 'BUTTON') { e.preventDefault(); startGame(); }
+    return;
+  }
   if (e.code === 'KeyP') { togglePause(); return; }
   if (e.code === 'KeyT') { toggleTheme(); return; }
   if (paused || gameOver) return;
@@ -362,11 +491,38 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
+function startGame() {
+  if (started) return;
+  started = true;
+  startOverlay.classList.add('hidden');
+  if (document.activeElement) document.activeElement.blur();
+  init();
+}
+
 restartBtn.addEventListener('click', init);
+startBtn.addEventListener('click', startGame);
+nameForm.addEventListener('submit', e => {
+  e.preventDefault();
+  submitName();
+});
+document.querySelectorAll('.reset-scores').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!confirm('¿Borrar todos los récords?')) return;
+    try {
+      localStorage.removeItem('highscores');
+      localStorage.removeItem('records');
+    } catch (e) {}
+    renderAllScores();
+    btn.blur();
+  });
+});
 themeBtn.addEventListener('click', () => {
   toggleTheme();
   themeBtn.blur();
 });
 
+// pantalla de inicio: el juego no arranca hasta pulsar Jugar / Enter
 init();
+cancelAnimationFrame(animId);
+renderAllScores();
 setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
