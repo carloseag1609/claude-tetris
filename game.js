@@ -410,7 +410,7 @@ function init() {
 document.addEventListener('keydown', e => {
   heldKeys.add(e.code);
   if (e.code === 'KeyT') { toggleTheme(); return; }
-  if ((e.code === 'KeyP' || e.code === 'Escape') && !gameOver) {
+  if ((e.code === 'KeyP' || e.code === 'Escape') && !gameOver && !e.ctrlKey && !e.metaKey && !e.altKey) {
     e.preventDefault();
     if (!e.repeat) togglePause();
     return;
