@@ -193,6 +193,7 @@ kbd {
   align-items: center;
 }
 
+.overlay-title,
 #overlay-title {
   font-size: 28px;
   font-weight: 800;
@@ -206,7 +207,7 @@ kbd {
   color: var(--value);
 }
 
-#restart-btn {
+.menu-btn {
   margin-top: 8px;
   background: var(--accent);
   color: var(--accent-text);
@@ -220,6 +221,85 @@ kbd {
   transition: background 0.15s;
 }
 
-#restart-btn:hover {
+.menu-btn:hover {
   background: var(--accent-hover);
+}
+
+.menu-btn,
+.level-btn {
+  outline: none;
+}
+
+.menu-btn.focused,
+.level-select.focused {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.overlay-box.hidden {
+  display: none;
+}
+
+#pause-main .menu-btn {
+  width: 180px;
+  margin-top: 0;
+}
+
+#pause-title {
+  color: var(--accent);
+}
+
+.controls-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.controls-list li {
+  font-size: 14px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.level-select {
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.level-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.level-btn {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.level-btn:hover {
+  border-color: var(--accent);
+}
+
+#start-level-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--value);
+  min-width: 2ch;
+  text-align: center;
 }

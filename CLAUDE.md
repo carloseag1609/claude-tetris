@@ -40,7 +40,9 @@ Hold: `held` (piece type or `null`) and `canHold` state. `holdPiece()` (`C`/`Shi
 
 Theming: colors live in CSS custom properties on `:root` (dark, default) with a `:root[data-theme="light"]` override in `style.css`. An inline script in `<head>` applies the saved theme (`localStorage` key `theme`) before first paint. `setTheme()` in `game.js` sets `data-theme`, persists it, caches canvas colors (`--grid`, `--block-highlight`) read via `getComputedStyle` into `gridColor`/`highlightColor`, and repaints `draw()`/`drawNext()` (so it works while paused/game over). Toggle with the `#theme-toggle` button or `T` (handled before the `paused || gameOver` guard).
 
-Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops, P pauses).
+Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops, P/Esc open the pause menu).
+
+Pause menu: `#pause-overlay` (separate from game-over `#overlay`) with views `main` (Reanudar / Reiniciar / Controles / NIVEL INICIAL selector) and `controls`, switched by `showPauseView()`. `openPause()`/`closePause()` (via `togglePause()`, no-op after game over) cancel/restart the rAF loop; `P`/`Esc` toggle. While `paused`, the keydown handler `preventDefault`+`stopPropagation`s and routes to `handlePauseKey()` before any gameplay code. `heldKeys`/`suppressedKeys` make gameplay ignore keys held across open/close/restart until released. Restart = `init()`. `startLevel`/`setStartLevel()` is UI-only (hook for a future level system); it never touches `level`/`dropInterval`.
 
 If you change `COLS`, `ROWS`, or `BLOCK`, also update the `<canvas id="board">` `width`/`height` in `index.html` to match (`COLS × BLOCK` × `ROWS × BLOCK`).
 

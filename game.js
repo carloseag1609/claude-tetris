@@ -43,8 +43,28 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeBtn = document.getElementById('theme-toggle');
+const pauseOverlay = document.getElementById('pause-overlay');
+const pauseMain = document.getElementById('pause-main');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelEl = document.getElementById('start-level-value');
+const levelSelect = document.getElementById('level-select');
+const menuItems = [
+  document.getElementById('pause-resume'),
+  document.getElementById('pause-restart'),
+  document.getElementById('pause-controls-btn'),
+  levelSelect,
+];
+const LEVEL_ITEM = 3;
+
+const MIN_START_LEVEL = 1;
+const MAX_START_LEVEL = 10;
 
 let gridColor, highlightColor;
+let startLevel = MIN_START_LEVEL; // UI-only, no gameplay effect
+let pauseView = 'main';
+let menuIndex = 0;
+const heldKeys = new Set();       // keys currently down
+let suppressedKeys = new Set();   // held across menu open/close/restart: ignored by gameplay until released
 let board, current, next, held, canHold, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 
 function createBoard() {
@@ -266,17 +286,69 @@ function endGame() {
   overlay.classList.remove('hidden');
 }
 
+function openPause() {
+  if (gameOver || paused) return;
+  paused = true;
+  cancelAnimationFrame(animId);
+  suppressedKeys = new Set(heldKeys);
+  showPauseView('main');
+  pauseOverlay.classList.remove('hidden');
+}
+
+function closePause() {
+  if (!paused) return;
+  paused = false;
+  suppressedKeys = new Set(heldKeys);
+  pauseOverlay.classList.add('hidden');
+  showPauseView('main');
+  lastTime = performance.now();
+  animId = requestAnimationFrame(loop);
+}
+
 function togglePause() {
   if (gameOver) return;
-  paused = !paused;
-  if (!paused) {
-    lastTime = performance.now();
-    loop(lastTime);
-  } else {
-    cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+  if (paused) closePause(); else openPause();
+}
+
+function showPauseView(view) {
+  pauseView = view;
+  pauseMain.classList.toggle('hidden', view !== 'main');
+  pauseControls.classList.toggle('hidden', view !== 'controls');
+  setMenuIndex(0);
+}
+
+function setMenuIndex(i) {
+  menuIndex = (i + menuItems.length) % menuItems.length;
+  menuItems.forEach((el, idx) => el.classList.toggle('focused', idx === menuIndex));
+}
+
+// Hook for the future level system: only updates the selector, never `level`/`dropInterval`.
+function setStartLevel(n) {
+  startLevel = Math.min(MAX_START_LEVEL, Math.max(MIN_START_LEVEL, n));
+  startLevelEl.textContent = startLevel;
+}
+
+function activateMenuItem(i) {
+  if (i === 0) closePause();
+  else if (i === 1) init();
+  else if (i === 2) showPauseView('controls');
+}
+
+function handlePauseKey(e) {
+  if (pauseView === 'controls') {
+    if ((e.code === 'Enter' || e.code === 'Space') && !e.repeat) showPauseView('main');
+    else if (e.code === 'Backspace') showPauseView('main');
+    return;
+  }
+  switch (e.code) {
+    case 'ArrowUp': setMenuIndex(menuIndex - 1); break;
+    case 'ArrowDown': setMenuIndex(menuIndex + 1); break;
+    case 'ArrowLeft': if (menuIndex === LEVEL_ITEM) setStartLevel(startLevel - 1); break;
+    case 'ArrowRight': if (menuIndex === LEVEL_ITEM) setStartLevel(startLevel + 1); break;
+    case 'Enter':
+    case 'Space':
+      if (!e.repeat) activateMenuItem(menuIndex);
+      break;
   }
 }
 
@@ -319,6 +391,9 @@ function init() {
   level = 1;
   paused = false;
   gameOver = false;
+  pauseOverlay.classList.add('hidden');
+  showPauseView('main');
+  suppressedKeys = new Set(heldKeys);
   dropInterval = 1000;
   dropAccum = 0;
   lastTime = performance.now();
@@ -333,9 +408,20 @@ function init() {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  heldKeys.add(e.code);
   if (e.code === 'KeyT') { toggleTheme(); return; }
-  if (paused || gameOver) return;
+  if ((e.code === 'KeyP' || e.code === 'Escape') && !gameOver) {
+    e.preventDefault();
+    if (!e.repeat) togglePause();
+    return;
+  }
+  if (paused) {
+    e.preventDefault();
+    e.stopPropagation();
+    handlePauseKey(e);
+    return;
+  }
+  if (gameOver || suppressedKeys.has(e.code)) return;
   if (e.code === 'KeyC' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
     if (!e.repeat) holdPiece();
     return;
@@ -362,7 +448,23 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
+document.addEventListener('keyup', e => {
+  heldKeys.delete(e.code);
+  suppressedKeys.delete(e.code);
+});
+window.addEventListener('blur', () => {
+  heldKeys.clear();
+  suppressedKeys.clear();
+});
+
 restartBtn.addEventListener('click', init);
+const onMenuClick = (el, fn) => el.addEventListener('click', () => { fn(); el.blur(); });
+onMenuClick(document.getElementById('pause-resume'), closePause);
+onMenuClick(document.getElementById('pause-restart'), init);
+onMenuClick(document.getElementById('pause-controls-btn'), () => showPauseView('controls'));
+onMenuClick(document.getElementById('pause-back'), () => showPauseView('main'));
+onMenuClick(document.getElementById('start-level-dec'), () => setStartLevel(startLevel - 1));
+onMenuClick(document.getElementById('start-level-inc'), () => setStartLevel(startLevel + 1));
 themeBtn.addEventListener('click', () => {
   toggleTheme();
   themeBtn.blur();
