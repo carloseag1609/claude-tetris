@@ -54,7 +54,7 @@
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
             <li><kbd>C</kbd><kbd>Shift</kbd> guardar</li>
-            <li><kbd>P</kbd> pausa</li>
+            <li><kbd>P</kbd><kbd>Esc</kbd> pausa</li>
             <li><kbd>T</kbd> tema</li>
           </ul>
         </div>
@@ -68,6 +68,34 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="pause-menu" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+      <div class="overlay-box" id="pause-main">
+        <p id="pause-title">PAUSA</p>
+        <button type="button" class="menu-item menu-btn" id="resume-btn">Reanudar</button>
+        <button type="button" class="menu-item menu-btn" id="pause-restart-btn">Reiniciar</button>
+        <button type="button" class="menu-item menu-btn" id="controls-btn">Ver controles</button>
+        <div class="menu-item level-select" id="start-level-row" tabindex="0" role="spinbutton" aria-label="Nivel inicial" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1">
+          <span class="level-label">Nivel inicial</span>
+          <button type="button" class="level-step" id="level-down" tabindex="-1" aria-label="Bajar nivel inicial">&minus;</button>
+          <span class="level-value" id="start-level">1</span>
+          <button type="button" class="level-step" id="level-up" tabindex="-1" aria-label="Subir nivel inicial">+</button>
+        </div>
+      </div>
+      <div class="overlay-box hidden" id="pause-controls">
+        <p id="controls-title">CONTROLES</p>
+        <ul class="controls-list">
+          <li><kbd>←</kbd><kbd>→</kbd> mover</li>
+          <li><kbd>↑</kbd><kbd>X</kbd> rotar</li>
+          <li><kbd>↓</kbd> bajar</li>
+          <li><kbd>Space</kbd> caída</li>
+          <li><kbd>C</kbd><kbd>Shift</kbd> guardar</li>
+          <li><kbd>P</kbd><kbd>Esc</kbd> pausa</li>
+          <li><kbd>T</kbd> tema</li>
+        </ul>
+        <button type="button" class="menu-item menu-btn" id="controls-back-btn">Volver</button>
       </div>
     </div>
   </div>

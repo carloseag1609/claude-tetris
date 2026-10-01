@@ -43,9 +43,20 @@ const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeBtn = document.getElementById('theme-toggle');
+const pauseMenu = document.getElementById('pause-menu');
+const pauseMain = document.getElementById('pause-main');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelRow = document.getElementById('start-level-row');
+const startLevelEl = document.getElementById('start-level');
 
 let gridColor, highlightColor;
 let board, current, next, held, canHold, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+// Menú de pausa: startLevel es solo UI (nunca toca level ni dropInterval).
+// downKeys = teclas físicamente pulsadas; blockedKeys = pulsadas al abrir/cerrar/reiniciar, ignoradas hasta keyup.
+let startLevel = 1;
+let menuView = 'main';
+const downKeys = new Set();
+let blockedKeys = new Set();
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -266,17 +277,62 @@ function endGame() {
   overlay.classList.remove('hidden');
 }
 
-function togglePause() {
-  if (gameOver) return;
-  paused = !paused;
-  if (!paused) {
-    lastTime = performance.now();
-    loop(lastTime);
-  } else {
-    cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+function blockHeldKeys() {
+  blockedKeys = new Set(downKeys);
+}
+
+function showMenuView(view) {
+  menuView = view;
+  pauseMain.classList.toggle('hidden', view !== 'main');
+  pauseControls.classList.toggle('hidden', view !== 'controls');
+  const first = (view === 'main' ? pauseMain : pauseControls).querySelector('.menu-item');
+  first.focus();
+}
+
+function openMenu() {
+  if (gameOver || paused) return;
+  paused = true;
+  cancelAnimationFrame(animId);
+  blockHeldKeys();
+  pauseMenu.classList.remove('hidden');
+  showMenuView('main');
+}
+
+function closeMenu() {
+  if (!paused) return;
+  paused = false;
+  blockHeldKeys();
+  pauseMenu.classList.add('hidden');
+  if (document.activeElement) document.activeElement.blur();
+  lastTime = performance.now();
+  loop(lastTime);
+}
+
+function setStartLevel(n) {
+  startLevel = Math.min(10, Math.max(1, n));
+  startLevelEl.textContent = startLevel;
+  startLevelRow.setAttribute('aria-valuenow', startLevel);
+}
+
+function menuKey(e) {
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (menuView === 'controls') showMenuView('main');
+    else closeMenu();
+    return;
+  }
+  const items = [...(menuView === 'main' ? pauseMain : pauseControls).querySelectorAll('.menu-item')];
+  const i = items.indexOf(document.activeElement);
+  if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    const step = e.code === 'ArrowDown' ? 1 : -1;
+    items[(i + step + items.length) % items.length].focus();
+  } else if (document.activeElement === startLevelRow &&
+             (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+    e.preventDefault();
+    setStartLevel(startLevel + (e.code === 'ArrowRight' ? 1 : -1));
+  } else if (e.code === 'Space' && document.activeElement === document.body) {
+    e.preventDefault();
   }
 }
 
@@ -328,14 +384,22 @@ function init() {
   setCanHold(true);
   updateHUD();
   overlay.classList.add('hidden');
+  pauseMenu.classList.add('hidden');
+  blockHeldKeys();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  downKeys.add(e.code);
   if (e.code === 'KeyT') { toggleTheme(); return; }
-  if (paused || gameOver) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (!paused && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && !blockedKeys.has(e.code)) openMenu();
+    else if (paused) menuKey(e);
+    return;
+  }
+  if (paused) { menuKey(e); return; }
+  if (gameOver || blockedKeys.has(e.code)) return;
   if (e.code === 'KeyC' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
     if (!e.repeat) holdPiece();
     return;
@@ -362,7 +426,22 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
+document.addEventListener('keyup', e => {
+  downKeys.delete(e.code);
+  blockedKeys.delete(e.code);
+});
+window.addEventListener('blur', () => {
+  downKeys.clear();
+  blockedKeys.clear();
+});
+
 restartBtn.addEventListener('click', init);
+document.getElementById('resume-btn').addEventListener('click', closeMenu);
+document.getElementById('pause-restart-btn').addEventListener('click', init);
+document.getElementById('controls-btn').addEventListener('click', () => showMenuView('controls'));
+document.getElementById('controls-back-btn').addEventListener('click', () => showMenuView('main'));
+document.getElementById('level-down').addEventListener('click', () => setStartLevel(startLevel - 1));
+document.getElementById('level-up').addEventListener('click', () => setStartLevel(startLevel + 1));
 themeBtn.addEventListener('click', () => {
   toggleTheme();
   themeBtn.blur();

@@ -40,7 +40,9 @@ Hold: `held` (piece type or `null`) and `canHold` state. `holdPiece()` (`C`/`Shi
 
 Theming: colors live in CSS custom properties on `:root` (dark, default) with a `:root[data-theme="light"]` override in `style.css`. An inline script in `<head>` applies the saved theme (`localStorage` key `theme`) before first paint. `setTheme()` in `game.js` sets `data-theme`, persists it, caches canvas colors (`--grid`, `--block-highlight`) read via `getComputedStyle` into `gridColor`/`highlightColor`, and repaints `draw()`/`drawNext()` (so it works while paused/game over). Toggle with the `#theme-toggle` button or `T` (handled before the `paused || gameOver` guard).
 
-Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops, P pauses).
+Flow: `init()` → `createBoard()`, seed `next`, `spawn()` (promotes `next` to `current`, generates new `next`; if the new piece immediately collides, `endGame()` fires), start `loop` via `requestAnimationFrame`. Input is handled by a single `keydown` listener (arrows move/rotate/soft-drop, Space hard-drops).
+
+Pause menu: `P`/`Escape` (ignoring `e.repeat` and ctrl/meta/alt) call `openMenu()`, which shows `#pause-menu` (separate from `#overlay`, which is game over only) with Reanudar / Reiniciar (`init()`) / Ver controles (sub-view, `showMenuView()`) / Nivel inicial (`startLevel`, 1–10, UI-only: never touches `level`/`dropInterval`). While `paused`, keydown goes to `menuKey()` (↑/↓ focus, ←/→ on selector, Enter/Space native button clicks) and no gameplay key runs. `downKeys` tracks physically held keys; `blockHeldKeys()` copies them to `blockedKeys` on open/close/`init()`, and those keys are ignored until keyup (both cleared on window blur). `T` works everywhere.
 
 If you change `COLS`, `ROWS`, or `BLOCK`, also update the `<canvas id="board">` `width`/`height` in `index.html` to match (`COLS × BLOCK` × `ROWS × BLOCK`).
 
